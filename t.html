@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoGebra Logic Final Score Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col lg:flex-row">
+        
+        <div class="p-8 lg:w-1/2 border-b lg:border-b-0 lg:border-r border-gray-200">
+            <div class="flex items-center mb-6">
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">單筆計算</h2>
+            </div>
+            
+            <div class="space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Last Score</label>
+                        <input type="number" id="inputLast" step="0.01" class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-mono text-lg" placeholder="e.g. 92.78">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Current Score</label>
+                        <input type="number" id="inputCurrent" step="0.01" class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-mono text-lg" placeholder="e.g. 94.44">
+                    </div>
+                </div>
+
+                <div class="text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded hidden" id="debugInfo">
+                    zp: <span id="val_zp">-</span> | delta: <span id="val_delta">-</span>
+                </div>
+                
+                <div class="pt-2">
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 text-center border border-blue-100 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-200 rounded-full opacity-20 blur-xl"></div>
+                        <span class="block text-blue-600 text-xs font-bold uppercase tracking-widest mb-1">Final Score Result</span>
+                        <span id="singleResult" class="block text-5xl font-extrabold text-gray-900 tracking-tight">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-8 lg:w-1/2 bg-gray-50">
+            <div class="flex items-center mb-6">
+                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Excel 批次計算</h2>
+            </div>
+            
+            <div class="space-y-4">
+                <p class="text-sm text-gray-600 leading-relaxed">
+                    上傳 Excel (.xlsx) 檔案，系統將依據 GeoGebra 邏輯自動計算。
+                    <br><span class="text-xs text-gray-400">需包含欄位：<code>last</code>, <code>current</code></span>
+                </p>
+
+                <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group bg-white">
+                    <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls">
+                    <svg class="w-12 h-12 mx-auto text-gray-300 group-hover:text-blue-500 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    <p class="text-gray-600 font-medium group-hover:text-blue-600">點擊上傳或拖曳檔案至此</p>
+                </div>
+
+                <div id="statusArea" class="hidden animate-fade-in">
+                    <div class="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-3 animate-pulse"></div>
+                            <span id="statusText" class="text-sm font-medium text-gray-700">處理完成</span>
+                        </div>
+                        <button id="downloadBtn" class="bg-gray-900 hover:bg-black text-white text-sm px-5 py-2.5 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                            下載結果 Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * GeoGebra Logic Implementation
+         * 基於使用者提供的截圖進行係數還原
+         */
+
+        // 輔助函式：計算二次多項式 ax^2 + bx + c
+        function poly2(x, a, b, c) {
+            return (a * x * x) + (b * x) + c;
+        }
+
+        // 1. 計算 ZP (Threshold)
+        // 來源截圖: zp(x) 定義
+        function get_zp(last) {
+            // 雖然截圖寫 0<=x<75, 但為了避免邊界錯誤，我們假設 <75 走第一條
+            if (last < 75) {
+                // 0.026666666667 x^2 - 4.066666666667 x + 155
+                return poly2(last, 0.026666666667, -4.066666666667, 155);
+            } else {
+                // -0.005 x^2 + 0.6 x - 16.875
+                return poly2(last, -0.005, 0.6, -16.875);
+            }
+        }
+
+        // 2. 計算 Drvt2h (High Curve Quadratic Coefficient)
+        // 來源截圖: drvt2h(x)
+        function get_drvt2h(last) {
+            return poly2(last, 0.0001317279461, -0.0066766329966, 0.0097777777778);
+        }
+
+        // 3. 計算 Drvt2l (Low Curve Quadratic Coefficient)
+        // 來源截圖: drvt2l(x)
+        function get_drvt2l(last) {
+            return poly2(last, 0.0001041230769, -0.0090092307692, -0.16);
+        }
+
+        // 4. 計算 DrvtVarH (High Curve Linear Coefficient)
+        // 來源截圖: drvtvarh(x)
+        function get_drvtvarh(last) {
+            return poly2(last, 0.0011776161616, -0.0581434343434, -1.5133333333333);
+        }
+
+        // 5. 計算 DrvtVarL (Low Curve Linear Coefficient)
+        // 來源截圖: drvtvarl(x)
+        function get_drvtvarl(last) {
+            return poly2(last, 0.0029682051282, -0.5432820512821, 24.8);
+        }
+
+        // 積分函式 Integral(Ax + B) dx = 0.5*A*x^2 + B*x
+        // 這裡的輸入 x 是 delta (current - last)
+        function integrate_func(val, A, B) {
+            return (0.5 * A * val * val) + (B * val);
+        }
+
+        // *** 主計算函式 ***
+        function calculateFinalScore(lastStr, currentStr) {
+            const last = parseFloat(lastStr);
+            const current = parseFloat(currentStr);
+
+            if (isNaN(last) || isNaN(current)) return null;
+
+            // 1. 計算 delta
+            const delta = current - last;
+
+            // 2. 根據 last 取得各項參數
+            const zp_val = get_zp(last);
+            const a_high = get_drvt2h(last);
+            const b_high = get_drvtvarh(last);
+            const a_low  = get_drvt2l(last);
+            const b_low  = get_drvtvarl(last);
+
+            // 3. 定義積分值計算
+            // Logic based on "you(x) = If(x <= zp, low(x)-low(zp), high(x)-high(zp))"
+            // 這表示在 zp 點，分數調整為 0 (基準點)
+            
+            let score;
+            if (delta <= zp_val) {
+                // 使用 Low Curve
+                const val_now = integrate_func(delta, a_low, b_low);
+                const val_ref = integrate_func(zp_val, a_low, b_low);
+                score = val_now - val_ref;
+            } else {
+                // 使用 High Curve
+                const val_now = integrate_func(delta, a_high, b_high);
+                const val_ref = integrate_func(zp_val, a_high, b_high);
+                score = val_now - val_ref;
+            }
+
+            return score;
+        }
+
+        // ================= UI 互動邏輯 =================
+
+        const inputLast = document.getElementById('inputLast');
+        const inputCurrent = document.getElementById('inputCurrent');
+        const singleResult = document.getElementById('singleResult');
+        const debugInfo = document.getElementById('debugInfo');
+        const val_zp = document.getElementById('val_zp');
+        const val_delta = document.getElementById('val_delta');
+
+        function updateSingle() {
+            const last = inputLast.value;
+            const current = inputCurrent.value;
+
+            if(last && current) {
+                const result = calculateFinalScore(last, current);
+                
+                // 顯示 Debug 資訊
+                const l = parseFloat(last);
+                const c = parseFloat(current);
+                val_zp.innerText = get_zp(l).toFixed(4);
+                val_delta.innerText = (c-l).toFixed(4);
+                // debugInfo.classList.remove('hidden'); 
+
+                if (result !== null) {
+                    // GeoGebra 顯示很多小數位，這裡預設取 5 位
+                    singleResult.innerText = result.toFixed(5);
+                } else {
+                    singleResult.innerText = "Error";
+                }
+            } else {
+                singleResult.innerText = "-";
+                // debugInfo.classList.add('hidden');
+            }
+        }
+
+        inputLast.addEventListener('input', updateSingle);
+        inputCurrent.addEventListener('input', updateSingle);
+
+        // ================= Excel 邏輯 =================
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const statusArea = document.getElementById('statusArea');
+        const statusText = document.getElementById('statusText');
+        const downloadBtn = document.getElementById('downloadBtn');
+        let processedWorkbook = null;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'bg-blue-50');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            statusArea.classList.remove('hidden');
+            statusText.textContent = '讀取與計算中...';
+            downloadBtn.classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) throw new Error("Excel 為空");
+
+                    const processedData = jsonData.map(row => {
+                        // 模糊搜尋欄位名稱 (大小寫不敏感)
+                        const keys = Object.keys(row);
+                        const lastKey = keys.find(k => k.toLowerCase().includes('last'));
+                        const currentKey = keys.find(k => k.toLowerCase().includes('current'));
+
+                        const lastVal = lastKey ? row[lastKey] : null;
+                        const currentVal = currentKey ? row[currentKey] : null;
+
+                        if (lastVal !== null && currentVal !== null) {
+                            const score = calculateFinalScore(lastVal, currentVal);
+                            row['finalscore'] = score;
+                        } else {
+                            row['finalscore'] = 'Missing Data';
+                        }
+                        return row;
+                    });
+
+                    const newSheet = XLSX.utils.json_to_sheet(processedData);
+                    const newWorkbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(newWorkbook, newSheet, "Calculated");
+                    processedWorkbook = newWorkbook;
+                    
+                    statusText.innerHTML = `成功計算 <span class="font-bold text-gray-900">${processedData.length}</span> 筆資料`;
+                    downloadBtn.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error(error);
+                    statusText.textContent = '錯誤：請確認 Excel 包含 last 與 current 欄位';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            if (processedWorkbook) {
+                XLSX.writeFile(processedWorkbook, "GeoGebra_Result.xlsx");
+            }
+        });
+
+    </script>
+</body>
+</html>

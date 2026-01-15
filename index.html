@@ -2,53 +2,121 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoGebra Logic & Weighted Average Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Score Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; touch-action: manipulation; }
         .mono { font-family: 'JetBrains Mono', monospace; }
         .gradient-bg { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-        /* Input spin button removal */
+        
+        /* 移除預設 Input Spinners */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* === 手機優化滑桿樣式 === */
+        .slider-container {
+            position: relative;
+            width: 100%;
+            height: 44px; /* 增加觸控高度 */
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+        .custom-range {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 16px; /* 加粗軌道 */
+            border-radius: 8px;
+            background: #e2e8f0;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            z-index: 2;
+        }
+        /* 滑桿軌道漸層 */
+        .custom-range::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 16px;
+            cursor: pointer;
+            background: linear-gradient(90deg, #ef4444 0%, #e2e8f0 50%, #3b82f6 100%);
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        /* 滑桿圓鈕 (放大適合手指) */
+        .custom-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 36px; /* 放大按鈕 */
+            width: 36px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 3px solid #64748b;
+            margin-top: -11px; /* (36/2) - (16/2) + 1 correction */
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .custom-range:active::-webkit-slider-thumb {
+            transform: scale(1.1);
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        /* 防止 iOS 輸入框縮放 */
+        input[type="number"] {
+            font-size: 16px !important; 
+        }
     </style>
 </head>
-<body class="gradient-bg min-h-screen text-slate-800 p-4 lg:p-8">
+<body class="gradient-bg min-h-screen text-slate-800 p-3 lg:p-8 pb-20">
 
-    <div class="max-w-6xl mx-auto space-y-8">
+    <div class="max-w-4xl mx-auto space-y-6">
         
-        <header class="text-center mb-10">
-            <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight mb-2">成績運算整合系統</h1>
-            <p class="text-slate-500 text-sm">包含 GeoGebra 積分邏輯 與 段考加權平均</p>
+        <header class="text-center mb-6 pt-4">
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">成績運算整合系統</h1>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             
-            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden flex flex-col">
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden flex flex-col relative z-10">
                 <div class="bg-slate-800 p-4 text-white flex justify-between items-center">
                     <h2 class="font-bold flex items-center gap-2">
                         <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                         GeoGebra Final Score
                     </h2>
-                    <span class="text-xs bg-slate-600 px-2 py-1 rounded">精確版</span>
                 </div>
-                <div class="p-6 flex-1 flex flex-col space-y-6">
-                    <div class="grid grid-cols-2 gap-4">
+                
+                <div class="p-5 flex-1 flex flex-col space-y-6">
+                    <div class="space-y-5">
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Last Score</label>
-                            <input type="number" id="inputLast" step="0.01" class="mono text-lg w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-blue-500 outline-none" placeholder="92.78">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Last Score</label>
+                            <input type="number" id="inputLast" inputmode="decimal" step="0.01" class="mono text-xl w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors" placeholder="92.78">
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Current Score</label>
-                            <input type="number" id="inputCurrent" step="0.01" class="mono text-lg w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-blue-500 outline-none" placeholder="94.44">
+
+                        <div class="relative group">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between items-center">
+                                Current Score
+                                <span id="deltaIndicator" class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded text-xs opacity-0 transition-opacity mono">+0.0</span>
+                            </label>
+                            <input type="number" id="inputCurrent" inputmode="decimal" step="0.01" class="mono text-xl w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none transition-colors z-20 relative bg-white" placeholder="94.44">
+                            
+                            <div class="mt-4 bg-slate-50 p-3 rounded-xl border border-slate-100 relative">
+                                <div class="flex justify-between text-[11px] text-slate-400 font-bold mb-1 px-1">
+                                    <span>-5.0</span>
+                                    <span>+5.0</span>
+                                </div>
+                                <div class="slider-container">
+                                    <input type="range" id="nudgeSlider" min="-5" max="5" step="0.5" value="0" class="custom-range">
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="bg-slate-50 rounded-xl p-6 text-center border border-slate-200">
-                        <span class="text-xs text-slate-400 uppercase tracking-widest block mb-1">Calculated Score</span>
-                        <span id="singleResult" class="text-5xl font-black text-slate-800 mono">-</span>
+
+                    <div class="bg-slate-50 rounded-xl p-6 text-center border border-slate-200 shadow-inner relative overflow-hidden mt-2">
+                        <div class="absolute inset-0 bg-gradient-to-br from-white/0 to-blue-50/50 pointer-events-none"></div>
+                        <span class="text-xs text-slate-400 uppercase tracking-widest block mb-2 font-semibold">Calculated Final Score</span>
+                        <span id="singleResult" class="text-6xl font-black text-slate-800 mono tracking-tight relative z-10 transition-transform duration-100">-</span>
                     </div>
                 </div>
             </div>
@@ -60,14 +128,16 @@
                         Excel 批次計算
                     </h2>
                 </div>
-                <div class="p-6 flex-1 flex flex-col">
-                    <div id="dropZone" class="flex-1 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all min-h-[150px]">
+                <div class="p-5 flex-1 flex flex-col justify-center">
+                    <div id="dropZone" class="flex-1 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all min-h-[160px] group active:bg-blue-100">
+                        <svg class="w-10 h-10 text-slate-300 group-hover:text-blue-500 mb-3 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <p class="text-slate-500 text-sm font-medium">點擊上傳 Excel</p>
+                        <p class="text-slate-400 text-xs mt-1">(last, current 欄位)</p>
                         <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls">
-                        <p class="text-slate-500 text-sm font-medium">上傳 .xlsx (需含 last, current 欄位)</p>
                     </div>
-                    <div id="statusArea" class="hidden mt-4 flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
-                        <span id="statusText" class="text-xs font-bold text-green-700">完成</span>
-                        <button id="downloadBtn" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded transition">下載</button>
+                    <div id="statusArea" class="hidden mt-4 flex items-center justify-between bg-green-50 p-3 rounded-xl border border-green-200 shadow-sm">
+                        <span id="statusText" class="text-sm font-bold text-green-700">完成</span>
+                        <button id="downloadBtn" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded-lg font-bold transition shadow-sm active:scale-95">下載</button>
                     </div>
                 </div>
             </div>
@@ -77,72 +147,38 @@
             <div class="bg-indigo-600 p-4 text-white flex justify-between items-center">
                 <h2 class="text-lg font-bold flex items-center gap-2">
                     <svg class="w-6 h-6 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    段考加權平均計算器
+                    段考加權平均
                 </h2>
-                <span class="text-xs bg-indigo-500 text-indigo-100 px-3 py-1 rounded-full font-mono">Total Weight: 18</span>
+                <span class="text-xs bg-indigo-500 text-indigo-100 px-3 py-1 rounded-full font-mono font-bold">W:18</span>
             </div>
             
-            <div class="p-8">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div class="p-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div class="group">
-                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">
-                            國文 <span class="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">x5</span>
-                        </label>
-                        <input type="number" id="sc_chi" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all placeholder-slate-200 bg-slate-50 focus:bg-white subject-input" placeholder="0">
+                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">國文 <span class="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">x5</span></label>
+                        <input type="number" id="sc_chi" inputmode="decimal" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all bg-slate-50 focus:bg-white subject-input" placeholder="0">
                     </div>
                     <div class="group">
-                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">
-                            數學 <span class="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">x4</span>
-                        </label>
-                        <input type="number" id="sc_math" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all placeholder-slate-200 bg-slate-50 focus:bg-white subject-input" placeholder="0">
+                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">數學 <span class="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">x4</span></label>
+                        <input type="number" id="sc_math" inputmode="decimal" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all bg-slate-50 focus:bg-white subject-input" placeholder="0">
                     </div>
                     <div class="group">
-                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">
-                            英文 <span class="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">x3</span>
-                        </label>
-                        <input type="number" id="sc_eng" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all placeholder-slate-200 bg-slate-50 focus:bg-white subject-input" placeholder="0">
+                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">英文 <span class="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">x3</span></label>
+                        <input type="number" id="sc_eng" inputmode="decimal" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all bg-slate-50 focus:bg-white subject-input" placeholder="0">
                     </div>
                     <div class="group">
-                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">
-                            理化 <span class="bg-teal-100 text-teal-600 text-xs px-2 py-0.5 rounded-full">x2</span>
-                        </label>
-                        <input type="number" id="sc_sci" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all placeholder-slate-200 bg-slate-50 focus:bg-white subject-input" placeholder="0">
+                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">理化 <span class="bg-teal-100 text-teal-600 text-xs px-2 py-0.5 rounded-full">x2</span></label>
+                        <input type="number" id="sc_sci" inputmode="decimal" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all bg-slate-50 focus:bg-white subject-input" placeholder="0">
                     </div>
-                    
-                    <div class="group">
-                        <label class="flex justify-between text-sm font-bold text-slate-600 mb-2">
-                            地科 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">x1</span>
-                        </label>
-                        <input type="number" id="sc_earth" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0">
-                    </div>
-                    <div class="group">
-                        <label class="flex justify-between text-sm font-bold text-slate-600 mb-2">
-                            地理 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">x1</span>
-                        </label>
-                        <input type="number" id="sc_geo" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0">
-                    </div>
-                    <div class="group">
-                        <label class="flex justify-between text-sm font-bold text-slate-600 mb-2">
-                            歷史 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">x1</span>
-                        </label>
-                        <input type="number" id="sc_hist" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0">
-                    </div>
-                    <div class="group">
-                        <label class="flex justify-between text-sm font-bold text-slate-600 mb-2">
-                            公民 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">x1</span>
-                        </label>
-                        <input type="number" id="sc_civ" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0">
-                    </div>
+                    <div class="group"><label class="flex justify-between text-sm font-bold text-slate-500 mb-2">地科 <span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">x1</span></label><input type="number" id="sc_earth" inputmode="decimal" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0"></div>
+                    <div class="group"><label class="flex justify-between text-sm font-bold text-slate-500 mb-2">地理 <span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">x1</span></label><input type="number" id="sc_geo" inputmode="decimal" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0"></div>
+                    <div class="group"><label class="flex justify-between text-sm font-bold text-slate-500 mb-2">歷史 <span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">x1</span></label><input type="number" id="sc_hist" inputmode="decimal" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0"></div>
+                    <div class="group"><label class="flex justify-between text-sm font-bold text-slate-500 mb-2">公民 <span class="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">x1</span></label><input type="number" id="sc_civ" inputmode="decimal" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0"></div>
                 </div>
 
-                <div class="flex flex-col md:flex-row items-center justify-between bg-indigo-50 p-6 rounded-xl border border-indigo-100">
-                    <div class="mb-4 md:mb-0">
-                        <h3 class="text-indigo-900 font-bold text-lg">加權平均總分</h3>
-                        <p class="text-indigo-400 text-xs">總學分權重: 18</p>
-                    </div>
-                    <div class="text-right">
-                        <span id="weightedResult" class="text-6xl font-black text-indigo-600 tracking-tighter mono">0.00</span>
-                    </div>
+                <div class="flex flex-col items-center justify-center bg-indigo-50 p-6 rounded-xl border border-indigo-100 text-center">
+                    <p class="text-indigo-900 font-bold text-sm mb-1">加權平均總分</p>
+                    <span id="weightedResult" class="text-6xl font-black text-indigo-600 tracking-tighter mono leading-none">0.00</span>
                 </div>
             </div>
         </div>
@@ -188,53 +224,89 @@
             return val_delta - val_zp;
         }
 
-        // GeoGebra UI Events
+        // ==========================================
+        // UI Interaction (Input + Slider)
+        // ==========================================
         const inputLast = document.getElementById('inputLast');
         const inputCurrent = document.getElementById('inputCurrent');
         const singleResult = document.getElementById('singleResult');
+        const slider = document.getElementById('nudgeSlider');
+        const deltaIndicator = document.getElementById('deltaIndicator');
 
+        // 更新計算
         function updateGeo() {
             const res = calculateGeoScore(inputLast.value, inputCurrent.value);
             singleResult.innerText = res !== null ? res.toFixed(5) : "-";
         }
+
         inputLast.addEventListener('input', updateGeo);
         inputCurrent.addEventListener('input', updateGeo);
+
+        // --- 滑桿邏輯 (Spring Physics) ---
+        let baseValue = 0;
+
+        function startDrag() {
+            baseValue = parseFloat(inputCurrent.value) || 0;
+            deltaIndicator.classList.remove('opacity-0');
+        }
+
+        function onDrag() {
+            // 因為 slider step 設為 0.5，這裡取出的值已經是 0.5 的倍數 (-5, -4.5, ..., 0, ..., 4.5, 5)
+            const offset = parseFloat(slider.value);
+            const newValue = baseValue + offset;
+            
+            // 更新 Input 顯示 (確保沒有浮點數誤差)
+            inputCurrent.value = (Math.round(newValue * 100) / 100);
+            
+            // 更新指示器
+            deltaIndicator.innerText = offset > 0 ? `+${offset.toFixed(1)}` : offset.toFixed(1);
+            
+            // 觸發計算
+            updateGeo();
+        }
+
+        function endDrag() {
+            requestAnimationFrame(() => {
+                slider.value = 0;
+                deltaIndicator.classList.add('opacity-0');
+            });
+        }
+
+        // 滑鼠與觸控事件綁定
+        slider.addEventListener('mousedown', startDrag);
+        slider.addEventListener('input', onDrag);
+        slider.addEventListener('mouseup', endDrag);
+        slider.addEventListener('mouseleave', () => { 
+            if(slider.value != 0) endDrag(); 
+        });
+
+        // 手機觸控支援
+        slider.addEventListener('touchstart', startDrag);
+        slider.addEventListener('touchend', endDrag);
 
         // ==========================================
         // Part 2: Weighted Average Logic
         // ==========================================
         const weights = {
-            'sc_chi': 5,
-            'sc_math': 4,
-            'sc_eng': 3,
-            'sc_sci': 2,
-            'sc_earth': 1,
-            'sc_geo': 1,
-            'sc_hist': 1,
-            'sc_civ': 1
+            'sc_chi': 5, 'sc_math': 4, 'sc_eng': 3, 'sc_sci': 2,
+            'sc_earth': 1, 'sc_geo': 1, 'sc_hist': 1, 'sc_civ': 1
         };
         const totalWeight = 18;
-
         const subjectInputs = document.querySelectorAll('.subject-input');
         const weightedResult = document.getElementById('weightedResult');
 
         function updateWeighted() {
             let totalScore = 0;
-            
-            // 遍歷所有科目欄位
             subjectInputs.forEach(input => {
-                const val = parseFloat(input.value) || 0; // 若為空則視為 0
+                const val = parseFloat(input.value) || 0;
                 const w = weights[input.id];
                 totalScore += val * w;
             });
-
             const avg = totalScore / totalWeight;
             weightedResult.innerText = avg.toFixed(2);
         }
 
-        subjectInputs.forEach(input => {
-            input.addEventListener('input', updateWeighted);
-        });
+        subjectInputs.forEach(input => input.addEventListener('input', updateWeighted));
 
         // ==========================================
         // Part 3: Excel Logic

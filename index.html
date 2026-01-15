@@ -3,219 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoGebra Final Score Calculator (Pro)</title>
+    <title>GeoGebra Logic & Weighted Average Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        .gradient-bg { background: radial-gradient(circle at top right, #e0e7ff, #ffffff); }
+        .gradient-bg { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        /* Input spin button removal */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
-<body class="gradient-bg min-h-screen text-slate-800 p-4 lg:p-10">
+<body class="gradient-bg min-h-screen text-slate-800 p-4 lg:p-8">
 
-    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="max-w-6xl mx-auto space-y-8">
         
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-            <div class="bg-slate-900 p-6 text-white flex justify-between items-center">
-                <h1 class="text-xl font-bold flex items-center gap-2">
-                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    Final Score 計算器
-                </h1>
-                <span class="text-xs bg-blue-600 px-2 py-1 rounded text-blue-100">v2.0 Precise</span>
-            </div>
+        <header class="text-center mb-10">
+            <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight mb-2">成績運算整合系統</h1>
+            <p class="text-slate-500 text-sm">包含 GeoGebra 積分邏輯 與 段考加權平均</p>
+        </header>
 
-            <div class="p-8 space-y-6">
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Last Score</label>
-                        <input type="number" id="inputLast" step="0.01" class="mono text-xl w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition-colors placeholder-slate-300" placeholder="92.78">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Current Score</label>
-                        <input type="number" id="inputCurrent" step="0.01" class="mono text-xl w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition-colors placeholder-slate-300" placeholder="94.44">
-                    </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden flex flex-col">
+                <div class="bg-slate-800 p-4 text-white flex justify-between items-center">
+                    <h2 class="font-bold flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        GeoGebra Final Score
+                    </h2>
+                    <span class="text-xs bg-slate-600 px-2 py-1 rounded">精確版</span>
                 </div>
-
-                <div class="bg-slate-50 rounded-2xl p-8 text-center border border-slate-200 relative overflow-hidden group">
-                    <div class="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors"></div>
-                    <p class="text-slate-500 text-sm font-semibold uppercase tracking-widest relative z-10">Calculated Final Score</p>
-                    <p id="singleResult" class="text-6xl font-black text-slate-800 mt-2 relative z-10 mono tracking-tight">-</p>
-                </div>
-
-                <div class="border-t border-slate-100 pt-6">
-                    <button onclick="document.getElementById('debugPanel').classList.toggle('hidden')" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
-                        顯示/隱藏 計算細節 (Debug)
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    
-                    <div id="debugPanel" class="hidden mt-4 bg-slate-900 rounded-lg p-4 text-xs font-mono text-green-400 overflow-x-auto">
-                        <table class="w-full text-left">
-                            <tr><td class="py-1 text-slate-400">Delta (Curr - Last):</td><td id="dbg_delta">-</td></tr>
-                            <tr><td class="py-1 text-slate-400">ZP (Threshold):</td><td id="dbg_zp">-</td></tr>
-                            <tr><td class="py-1 text-slate-400">Curve Used:</td><td id="dbg_curve">-</td></tr>
-                            <tr><td colspan="2" class="border-t border-slate-700 my-2"></td></tr>
-                            <tr><td class="py-1 text-slate-400">Coeff A (Quadratic):</td><td id="dbg_a">-</td></tr>
-                            <tr><td class="py-1 text-slate-400">Coeff B (Linear):</td><td id="dbg_b">-</td></tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="space-y-6">
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 p-8 h-full flex flex-col">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    </div>
-                    <h2 class="text-xl font-bold text-slate-800">Excel 批次處理</h2>
-                </div>
-
-                <div class="flex-1 flex flex-col justify-center space-y-4">
-                    <p class="text-sm text-slate-500">
-                        支援 <code>.xlsx</code> 格式。系統會自動搜尋名稱包含 <code class="bg-slate-100 px-1 rounded">last</code> 與 <code class="bg-slate-100 px-1 rounded">current</code> 的欄位。
-                    </p>
-
-                    <div id="dropZone" class="flex-1 min-h-[200px] border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all group">
-                        <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls">
-                        <svg class="w-12 h-12 text-slate-300 group-hover:text-blue-500 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        <p class="text-slate-600 font-medium group-hover:text-blue-600">拖曳檔案 或 點擊上傳</p>
-                    </div>
-
-                    <div id="statusArea" class="hidden">
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
-                            <span id="statusText" class="text-sm font-bold text-green-700">處理完成</span>
-                            <button id="downloadBtn" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg shadow transition-transform active:scale-95">
-                                下載結果
-                            </button>
+                <div class="p-6 flex-1 flex flex-col space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Last Score</label>
+                            <input type="number" id="inputLast" step="0.01" class="mono text-lg w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-blue-500 outline-none" placeholder="92.78">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Current Score</label>
+                            <input type="number" id="inputCurrent" step="0.01" class="mono text-lg w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-blue-500 outline-none" placeholder="94.44">
                         </div>
                     </div>
+                    <div class="bg-slate-50 rounded-xl p-6 text-center border border-slate-200">
+                        <span class="text-xs text-slate-400 uppercase tracking-widest block mb-1">Calculated Score</span>
+                        <span id="singleResult" class="text-5xl font-black text-slate-800 mono">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden flex flex-col">
+                <div class="bg-slate-800 p-4 text-white">
+                    <h2 class="font-bold flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Excel 批次計算
+                    </h2>
+                </div>
+                <div class="p-6 flex-1 flex flex-col">
+                    <div id="dropZone" class="flex-1 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all min-h-[150px]">
+                        <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls">
+                        <p class="text-slate-500 text-sm font-medium">上傳 .xlsx (需含 last, current 欄位)</p>
+                    </div>
+                    <div id="statusArea" class="hidden mt-4 flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
+                        <span id="statusText" class="text-xs font-bold text-green-700">完成</span>
+                        <button id="downloadBtn" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded transition">下載</button>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="bg-indigo-600 p-4 text-white flex justify-between items-center">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <svg class="w-6 h-6 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    段考加權平均計算器
+                </h2>
+                <span class="text-xs bg-indigo-500 text-indigo-100 px-3 py-1 rounded-full font-mono">Total Weight: 18</span>
+            </div>
+            
+            <div class="p-8">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                    <div class="group">
+                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                            國文 <span class="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">x5</span>
+                        </label>
+                        <input type="number" id="sc_chi" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all placeholder-slate-200 bg-slate-50 focus:bg-white subject-input" placeholder="0">
+                    </div>
+                    <div class="group">
+                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                            數學 <span class="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">x4</span>
+                        </label>
+                        <input type="number" id="sc_math" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all placeholder-slate-200 bg-slate-50 focus:bg-white subject-input" placeholder="0">
+                    </div>
+                    <div class="group">
+                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                            英文 <span class="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full">x3</span>
+                        </label>
+                        <input type="number" id="sc_eng" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all placeholder-slate-200 bg-slate-50 focus:bg-white subject-input" placeholder="0">
+                    </div>
+                    <div class="group">
+                        <label class="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                            理化 <span class="bg-teal-100 text-teal-600 text-xs px-2 py-0.5 rounded-full">x2</span>
+                        </label>
+                        <input type="number" id="sc_sci" class="w-full text-center text-xl font-bold py-3 border-2 border-slate-100 rounded-xl focus:border-indigo-500 outline-none transition-all placeholder-slate-200 bg-slate-50 focus:bg-white subject-input" placeholder="0">
+                    </div>
+                    
+                    <div class="group">
+                        <label class="flex justify-between text-sm font-bold text-slate-600 mb-2">
+                            地科 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">x1</span>
+                        </label>
+                        <input type="number" id="sc_earth" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0">
+                    </div>
+                    <div class="group">
+                        <label class="flex justify-between text-sm font-bold text-slate-600 mb-2">
+                            地理 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">x1</span>
+                        </label>
+                        <input type="number" id="sc_geo" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0">
+                    </div>
+                    <div class="group">
+                        <label class="flex justify-between text-sm font-bold text-slate-600 mb-2">
+                            歷史 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">x1</span>
+                        </label>
+                        <input type="number" id="sc_hist" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0">
+                    </div>
+                    <div class="group">
+                        <label class="flex justify-between text-sm font-bold text-slate-600 mb-2">
+                            公民 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">x1</span>
+                        </label>
+                        <input type="number" id="sc_civ" class="w-full text-center text-lg py-2 border border-slate-200 rounded-lg focus:border-indigo-500 outline-none subject-input" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row items-center justify-between bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                    <div class="mb-4 md:mb-0">
+                        <h3 class="text-indigo-900 font-bold text-lg">加權平均總分</h3>
+                        <p class="text-indigo-400 text-xs">總學分權重: 18</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="weightedResult" class="text-6xl font-black text-indigo-600 tracking-tighter mono">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
         // ==========================================
-        // 核心數學邏輯 (精確還原 GeoGebra)
+        // Part 1: GeoGebra Logic Implementation
         // ==========================================
-
-        // 通用二次多項式: ax^2 + bx + c
         const poly = (x, a, b, c) => (a * x * x) + (b * x) + c;
 
-        // 1. ZP (閾值計算) - 來自 Screenshot 6
         function getZP(last) {
-            if (last < 75) {
-                // 區間 [0, 75)
-                return poly(last, 0.026666666667, -4.066666666667, 155);
-            } else {
-                // 區間 [75, 100]
-                return poly(last, -0.005, 0.6, -16.875);
-            }
+            if (last < 75) return poly(last, 0.026666666667, -4.066666666667, 155);
+            else return poly(last, -0.005, 0.6, -16.875);
         }
 
-        // 2. 係數計算函式 (根據 Screenshot 2, 3, 4)
-        // High Curve (Quadratic Term A) - Screenshot 3
-        function getDrvt2H(last) {
-            return poly(last, 0.0001317279461, -0.0066766329966, 0.0097777777778);
-        }
-        // Low Curve (Quadratic Term A) - Screenshot 3
-        function getDrvt2L(last) {
-            return poly(last, 0.0001041230769, -0.0090092307692, -0.16);
-        }
-        // High Curve (Linear Term B) - Screenshot 4
-        function getDrvtVarH(last) {
-            return poly(last, 0.0011776161616, -0.0581434343434, -1.5133333333333);
-        }
-        // Low Curve (Linear Term B) - Screenshot 2
-        function getDrvtVarL(last) {
-            return poly(last, 0.0029682051282, -0.5432820512821, 24.8);
-        }
+        function getDrvt2H(last) { return poly(last, 0.0001317279461, -0.0066766329966, 0.0097777777778); }
+        function getDrvt2L(last) { return poly(last, 0.0001041230769, -0.0090092307692, -0.16); }
+        function getDrvtVarH(last) { return poly(last, 0.0011776161616, -0.0581434343434, -1.5133333333333); }
+        function getDrvtVarL(last) { return poly(last, 0.0029682051282, -0.5432820512821, 24.8); }
+        function integrate(val, A, B) { return (0.5 * A * val * val) + (B * val); }
 
-        // 3. 積分計算 (Integrate Ax + B => 0.5*A*x^2 + B*x)
-        function integrate(val, A, B) {
-            return (0.5 * A * val * val) + (B * val);
-        }
-
-        // 4. 主計算流程
-        function calculateScore(last, current) {
-            // 轉換為浮點數確保計算正確
+        function calculateGeoScore(last, current) {
             const l = parseFloat(last);
             const c = parseFloat(current);
             if (isNaN(l) || isNaN(c)) return null;
 
-            // Step 1: 計算 Delta 與 ZP
             const delta = c - l;
             const zp = getZP(l);
-
-            // Step 2: 決定使用哪條曲線 (High vs Low)
-            // 根據 Screenshot 10: If(x <= zp(last), ...)
-            let score = 0;
-            let A = 0;
-            let B = 0;
-            let curveType = "";
+            let A, B;
 
             if (delta <= zp) {
-                // 使用 Low Curve
-                curveType = "Low (delta <= zp)";
                 A = getDrvt2L(l);
                 B = getDrvtVarL(l);
             } else {
-                // 使用 High Curve
-                curveType = "High (delta > zp)";
                 A = getDrvt2H(l);
                 B = getDrvtVarH(l);
             }
 
-            // Step 3: 計算定積分差值 F(delta) - F(zp)
             const val_delta = integrate(delta, A, B);
             const val_zp = integrate(zp, A, B);
-            score = val_delta - val_zp;
-
-            return {
-                score: score,
-                debug: { delta, zp, curveType, A, B }
-            };
+            return val_delta - val_zp;
         }
 
+        // GeoGebra UI Events
+        const inputLast = document.getElementById('inputLast');
+        const inputCurrent = document.getElementById('inputCurrent');
+        const singleResult = document.getElementById('singleResult');
+
+        function updateGeo() {
+            const res = calculateGeoScore(inputLast.value, inputCurrent.value);
+            singleResult.innerText = res !== null ? res.toFixed(5) : "-";
+        }
+        inputLast.addEventListener('input', updateGeo);
+        inputCurrent.addEventListener('input', updateGeo);
+
         // ==========================================
-        // UI 互動邏輯
+        // Part 2: Weighted Average Logic
         // ==========================================
-        const els = {
-            last: document.getElementById('inputLast'),
-            curr: document.getElementById('inputCurrent'),
-            res: document.getElementById('singleResult'),
-            // debug els
-            d_delta: document.getElementById('dbg_delta'),
-            d_zp: document.getElementById('dbg_zp'),
-            d_curve: document.getElementById('dbg_curve'),
-            d_a: document.getElementById('dbg_a'),
-            d_b: document.getElementById('dbg_b')
+        const weights = {
+            'sc_chi': 5,
+            'sc_math': 4,
+            'sc_eng': 3,
+            'sc_sci': 2,
+            'sc_earth': 1,
+            'sc_geo': 1,
+            'sc_hist': 1,
+            'sc_civ': 1
         };
+        const totalWeight = 18;
 
-        function update() {
-            const result = calculateScore(els.last.value, els.curr.value);
+        const subjectInputs = document.querySelectorAll('.subject-input');
+        const weightedResult = document.getElementById('weightedResult');
+
+        function updateWeighted() {
+            let totalScore = 0;
             
-            if (result) {
-                els.res.innerText = result.score.toFixed(4); // 顯示4位小數
-                // 更新 Debug 資訊
-                els.d_delta.innerText = result.debug.delta.toFixed(5);
-                els.d_zp.innerText = result.debug.zp.toFixed(5);
-                els.d_curve.innerText = result.debug.curveType;
-                els.d_a.innerText = result.debug.A.toFixed(8);
-                els.d_b.innerText = result.debug.B.toFixed(8);
-            } else {
-                els.res.innerText = "-";
-            }
+            // 遍歷所有科目欄位
+            subjectInputs.forEach(input => {
+                const val = parseFloat(input.value) || 0; // 若為空則視為 0
+                const w = weights[input.id];
+                totalScore += val * w;
+            });
+
+            const avg = totalScore / totalWeight;
+            weightedResult.innerText = avg.toFixed(2);
         }
 
-        els.last.addEventListener('input', update);
-        els.curr.addEventListener('input', update);
+        subjectInputs.forEach(input => {
+            input.addEventListener('input', updateWeighted);
+        });
 
         // ==========================================
-        // Excel 處理邏輯
+        // Part 3: Excel Logic
         // ==========================================
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -224,11 +246,7 @@
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-50'); });
         dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-500', 'bg-blue-50'); });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
-            if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
-        });
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]); });
         fileInput.addEventListener('change', (e) => { if(e.target.files.length) processFile(e.target.files[0]); });
 
         function processFile(file) {
@@ -240,19 +258,15 @@
                     const ws = wb.Sheets[wb.SheetNames[0]];
                     const json = XLSX.utils.sheet_to_json(ws);
 
-                    if (json.length === 0) throw new Error("Empty File");
+                    if (json.length === 0) throw new Error("Empty");
 
                     const processed = json.map(row => {
-                        // 模糊搜尋欄位 (忽略大小寫、空白)
                         const keys = Object.keys(row);
-                        const lastKey = keys.find(k => k.toLowerCase().replace(/\s/g,'').includes('last'));
-                        const currKey = keys.find(k => k.toLowerCase().replace(/\s/g,'').includes('current'));
+                        const lastKey = keys.find(k => k.toLowerCase().includes('last'));
+                        const currKey = keys.find(k => k.toLowerCase().includes('current'));
 
                         if (lastKey && currKey) {
-                            const res = calculateScore(row[lastKey], row[currKey]);
-                            row['finalscore'] = res ? res.score : 'Error';
-                        } else {
-                            row['finalscore'] = 'Missing Columns';
+                            row['finalscore'] = calculateGeoScore(row[lastKey], row[currKey]);
                         }
                         return row;
                     });
@@ -263,19 +277,14 @@
                     workbookBlob = newWb;
 
                     document.getElementById('statusArea').classList.remove('hidden');
-                    document.getElementById('statusText').innerText = `成功計算 ${processed.length} 筆資料`;
-                } catch (err) {
-                    alert("讀取錯誤：請確認 Excel 格式正確");
-                    console.error(err);
-                }
+                } catch (err) { alert("Excel 讀取錯誤"); }
             };
             reader.readAsArrayBuffer(file);
         }
 
         document.getElementById('downloadBtn').addEventListener('click', () => {
-            if(workbookBlob) XLSX.writeFile(workbookBlob, "FinalScore_Result.xlsx");
+            if(workbookBlob) XLSX.writeFile(workbookBlob, "Calculated_Result.xlsx");
         });
-
     </script>
 </body>
 </html>
